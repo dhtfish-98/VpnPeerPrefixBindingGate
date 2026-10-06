@@ -91,9 +91,10 @@ $NS -t "$P1" -n /usr/bin/wirelab send -src 10.0.1.2 -payload P1_ALLOWED
 $NS -t "$P2" -n /usr/bin/wirelab send -src 10.0.2.2 -payload P2_ALLOWED
 $NS -t "$P1" -n $IP addr add 10.0.2.2/32 dev wg1
 $NS -t "$P1" -n /usr/bin/wirelab send -src 10.0.2.2 -payload P1_SPOOF
+if wait "$REPLAY"; then echo 'REPLAY_EXIT=PASS'; else echo 'REPLAY_EXIT=FAIL'; fi
+$NS -t "$P1" -n /usr/bin/wirelab send -src 10.0.1.2 -payload P1_AFTER
 $NS -t "$P2" -n /usr/bin/wirelab send -src 10.0.2.2 -payload P2_AFTER
 if wait "$RECEIVER"; then echo 'RECEIVER_EXIT=PASS'; else echo 'RECEIVER_EXIT=FAIL'; fi
-if wait "$REPLAY"; then echo 'REPLAY_EXIT=PASS'; else echo 'REPLAY_EXIT=FAIL'; fi
 $BB cat /tmp/receiver.log
 $BB cat /tmp/replay.log
 
@@ -123,6 +124,7 @@ $NS -t "$P1" -n /usr/bin/wirelab guard-send -peer 1 -key-file /tmp/guard1.key -c
 $NS -t "$P2" -n /usr/bin/wirelab guard-send -peer 2 -key-file /tmp/guard2.key -counter 1 -src 10.0.2.2 -payload G2_ALLOWED
 $NS -t "$P1" -n /usr/bin/wirelab guard-send -peer 1 -key-file /tmp/guard1.key -counter 2 -src 10.0.2.2 -payload G1_SPOOF
 $NS -t "$P1" -n /usr/bin/wirelab guard-send -peer 1 -key-file /tmp/guard1.key -counter 1 -src 10.0.1.2 -payload G1_ALLOWED
+$NS -t "$P1" -n /usr/bin/wirelab guard-send -peer 1 -key-file /tmp/guard1.key -counter 2 -src 10.0.1.2 -payload G1_AFTER
 $NS -t "$P2" -n /usr/bin/wirelab guard-send -peer 2 -key-file /tmp/guard2.key -counter 2 -src 10.0.2.2 -payload G2_AFTER
 if wait "$GUARD_RECEIVER"; then echo 'GUARD_RECEIVER_EXIT=PASS'; else echo 'GUARD_RECEIVER_EXIT=FAIL'; fi
 if wait "$GUARD_GATEWAY"; then echo 'GUARD_GATEWAY_EXIT=PASS'; else echo 'GUARD_GATEWAY_EXIT=FAIL'; fi

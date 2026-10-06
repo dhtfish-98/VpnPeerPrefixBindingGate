@@ -8,10 +8,10 @@ The gateway does not implement WireGuard, modify `wireguard-go`, or fix a WireGu
 
 - `guard/guard.go`: independent HMAC, canonical prefix, IPv4 integrity, and replay-window decisions. Authenticated peer identity selects exactly one prefix policy; overlapping prefixes are refused at configuration time.
 - `cmd/wirelab`: isolated packet sender, TUN gateways, receiver, and Linux encrypted-frame replay helper. The weak gateway deliberately omits the source binding for the negative control.
-- `scripts/experiment_guest.sh`: two network namespaces, two actual WireGuard peers, weak control, and five-packet guarded control in one disposable Linux VM.
+- `scripts/experiment_guest.sh`: two network namespaces, two actual WireGuard peers, weak control, and six-packet guarded control in one disposable Linux VM.
 - `scripts/prepare_macos_vm.py` and `scripts/run_macos_vm.py`: pinned Alpine inputs, Build-only binaries/serial log, and fail-closed required markers on macOS arm64.
 
-The received-packet matrix is: peer 1 `10.0.1.2` once, peer 2 `10.0.2.2` once and again for liveness; peer 1's authenticated claim to peer 2's `10.0.2.2` is absent. An identical encrypted WireGuard frame is reinjected from peer 1's veth; its first payload is delivered once, not twice. In the weak control, a peer 1 underlay packet claiming the peer 2 inner source is actually delivered. The separate guarded TUN control shows an authenticated prefix rejection and a counter replay rejection before TUN injection.
+The received-packet matrix is: both peers' allowed packets deliver once; after the negative cases, both peers' fresh packets still deliver once. Peer 1's claim to peer 2's `10.0.2.2` is absent. An identical encrypted WireGuard frame is reinjected from peer 1's veth; its first payload is delivered once, not twice. In the weak control, a peer 1 underlay packet claiming the peer 2 inner source is actually delivered. The separate guarded TUN control shows an authenticated prefix rejection and a counter replay rejection before TUN injection.
 
 ## Reproduce locally
 

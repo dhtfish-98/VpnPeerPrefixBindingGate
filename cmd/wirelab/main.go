@@ -203,7 +203,7 @@ func guardGateway(args []string) {
 	fmt.Println("GUARD_GATEWAY_READY iface=guard0 port=60001")
 	counts := map[string]int{}
 	buf := make([]byte, 65535)
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 6; i++ {
 		n, sender, err := c.ReadFromUDP(buf)
 		if err != nil {
 			fatal(err.Error())
@@ -217,7 +217,7 @@ func guardGateway(args []string) {
 			}
 		}
 	}
-	if counts["allowed"] == 3 && counts["source_prefix"] == 1 && counts["replay"] == 1 {
+	if counts["allowed"] == 4 && counts["source_prefix"] == 1 && counts["replay"] == 1 {
 		fmt.Println("GUARD_MATRIX=PASS")
 	} else {
 		fmt.Printf("GUARD_MATRIX=FAIL counts=%v\n", counts)
@@ -352,14 +352,14 @@ func listen(args []string) {
 		os.Exit(1)
 	}
 	if *mode == "guard" {
-		if counts["G1_ALLOWED"] == 1 && sources["G1_ALLOWED"] == "10.0.1.2" && counts["G2_ALLOWED"] == 1 && sources["G2_ALLOWED"] == "10.0.2.2" && counts["G1_SPOOF"] == 0 && counts["G2_AFTER"] == 1 && sources["G2_AFTER"] == "10.0.2.2" {
+		if counts["G1_ALLOWED"] == 1 && sources["G1_ALLOWED"] == "10.0.1.2" && counts["G2_ALLOWED"] == 1 && sources["G2_ALLOWED"] == "10.0.2.2" && counts["G1_SPOOF"] == 0 && counts["G1_AFTER"] == 1 && sources["G1_AFTER"] == "10.0.1.2" && counts["G2_AFTER"] == 1 && sources["G2_AFTER"] == "10.0.2.2" {
 			fmt.Println("GUARD_DELIVERY=PASS")
 			return
 		}
 		fmt.Println("GUARD_DELIVERY=FAIL")
 		os.Exit(1)
 	}
-	if counts["P1_ALLOWED"] == 1 && sources["P1_ALLOWED"] == "10.0.1.2" && counts["P2_ALLOWED"] == 1 && sources["P2_ALLOWED"] == "10.0.2.2" && counts["P1_SPOOF"] == 0 && counts["P2_AFTER"] == 1 && sources["P2_AFTER"] == "10.0.2.2" {
+	if counts["P1_ALLOWED"] == 1 && sources["P1_ALLOWED"] == "10.0.1.2" && counts["P2_ALLOWED"] == 1 && sources["P2_ALLOWED"] == "10.0.2.2" && counts["P1_SPOOF"] == 0 && counts["P1_AFTER"] == 1 && sources["P1_AFTER"] == "10.0.1.2" && counts["P2_AFTER"] == 1 && sources["P2_AFTER"] == "10.0.2.2" {
 		fmt.Println("DELIVERY_MATRIX=PASS")
 	} else {
 		fmt.Println("DELIVERY_MATRIX=FAIL")
