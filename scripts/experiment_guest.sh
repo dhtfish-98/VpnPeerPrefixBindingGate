@@ -2,10 +2,12 @@
 # Copyright (c) 2026 dhtfish98. MIT License.
 set -eu
 umask 077
-BB=/usr/bin/busybox
-WG=/usr/bin/wg
-NS="$BB nsenter"
-IP=/usr/bin/ip
+BB=${LAB_BUSYBOX:-/usr/bin/busybox}
+WG=${LAB_WG:-/usr/bin/wg}
+NS=${LAB_NSENTER:-"$BB nsenter"}
+UNSHARE=${LAB_UNSHARE:-"$BB unshare"}
+IP=${LAB_IP:-/usr/bin/ip}
+LAB=${LAB_WIRELAB:-/usr/bin/wirelab}
 
 $BB mkdir -p /proc /sys
 $BB mount -t proc proc /proc 2>/dev/null || true
@@ -15,11 +17,11 @@ modprobe wireguard
 modprobe veth
 modprobe tun
 $BB mkdir -p /dev/net
-$BB mknod /dev/net/tun c 10 200
+[ -c /dev/net/tun ] || $BB mknod /dev/net/tun c 10 200
 
-$BB unshare -n $BB sleep 120 > /tmp/ns1.out 2>&1 &
+$UNSHARE -n $BB sleep 120 > /tmp/ns1.out 2>&1 &
 P1=$!
-$BB unshare -n $BB sleep 120 > /tmp/ns2.out 2>&1 &
+$UNSHARE -n $BB sleep 120 > /tmp/ns2.out 2>&1 &
 P2=$!
 $BB sleep 1
 printf 'PIDS=%s,%s\n' "$P1" "$P2"
@@ -82,50 +84,50 @@ $WG show wg0
 if $NS -t "$P1" -n $BB ping -c 1 -W 2 10.0.0.1; then echo 'PEER1_PING=PASS'; else echo 'PEER1_PING=FAIL'; fi
 if $NS -t "$P2" -n $BB ping -c 1 -W 2 10.0.0.1; then echo 'PEER2_PING=PASS'; else echo 'PEER2_PING=FAIL'; fi
 
-$NS -t "$P1" -n /usr/bin/wirelab replay -iface p1u -seconds 6 > /tmp/replay.log 2>&1 &
+$NS -t "$P1" -n $LAB replay -iface p1u -seconds 6 > /tmp/replay.log 2>&1 &
 REPLAY=$!
-/usr/bin/wirelab listen -seconds 7 > /tmp/receiver.log 2>&1 &
+$LAB listen -seconds 7 > /tmp/receiver.log 2>&1 &
 RECEIVER=$!
 $BB sleep 1
-$NS -t "$P1" -n /usr/bin/wirelab send -src 10.0.1.2 -payload P1_ALLOWED
-$NS -t "$P2" -n /usr/bin/wirelab send -src 10.0.2.2 -payload P2_ALLOWED
+$NS -t "$P1" -n $LAB send -src 10.0.1.2 -payload P1_ALLOWED
+$NS -t "$P2" -n $LAB send -src 10.0.2.2 -payload P2_ALLOWED
 $NS -t "$P1" -n $IP addr add 10.0.2.2/32 dev wg1
-$NS -t "$P1" -n /usr/bin/wirelab send -src 10.0.2.2 -payload P1_SPOOF
+$NS -t "$P1" -n $LAB send -src 10.0.2.2 -payload P1_SPOOF
 if wait "$REPLAY"; then echo 'REPLAY_EXIT=PASS'; else echo 'REPLAY_EXIT=FAIL'; fi
-$NS -t "$P1" -n /usr/bin/wirelab send -src 10.0.1.2 -payload P1_AFTER
-$NS -t "$P2" -n /usr/bin/wirelab send -src 10.0.2.2 -payload P2_AFTER
+$NS -t "$P1" -n $LAB send -src 10.0.1.2 -payload P1_AFTER
+$NS -t "$P2" -n $LAB send -src 10.0.2.2 -payload P2_AFTER
 if wait "$RECEIVER"; then echo 'RECEIVER_EXIT=PASS'; else echo 'RECEIVER_EXIT=FAIL'; fi
 $BB cat /tmp/receiver.log
 $BB cat /tmp/replay.log
 
-/usr/bin/wirelab weak-gateway -seconds 5 > /tmp/weak-gateway.log 2>&1 &
+$LAB weak-gateway -seconds 5 > /tmp/weak-gateway.log 2>&1 &
 WEAK_GATEWAY=$!
 $BB sleep 1
 $IP link set weak0 up
-/usr/bin/wirelab listen -mode weak -addr 10.0.0.1:55001 -seconds 4 > /tmp/weak-receiver.log 2>&1 &
+$LAB listen -mode weak -addr 10.0.0.1:55001 -seconds 4 > /tmp/weak-receiver.log 2>&1 &
 WEAK_RECEIVER=$!
 $BB sleep 1
-$NS -t "$P1" -n /usr/bin/wirelab weak-send -src 10.0.2.2 -payload WEAK_SPOOF
+$NS -t "$P1" -n $LAB weak-send -src 10.0.2.2 -payload WEAK_SPOOF
 if wait "$WEAK_RECEIVER"; then echo 'WEAK_RECEIVER_EXIT=PASS'; else echo 'WEAK_RECEIVER_EXIT=FAIL'; fi
 if wait "$WEAK_GATEWAY"; then echo 'WEAK_GATEWAY_EXIT=PASS'; else echo 'WEAK_GATEWAY_EXIT=FAIL'; fi
 $BB cat /tmp/weak-receiver.log
 $BB cat /tmp/weak-gateway.log
 
-/usr/bin/wirelab genkey -out /tmp/guard1.key
-/usr/bin/wirelab genkey -out /tmp/guard2.key
-/usr/bin/wirelab guard-gateway -key1 /tmp/guard1.key -key2 /tmp/guard2.key -seconds 8 > /tmp/guard-gateway.log 2>&1 &
+$LAB genkey -out /tmp/guard1.key
+$LAB genkey -out /tmp/guard2.key
+$LAB guard-gateway -key1 /tmp/guard1.key -key2 /tmp/guard2.key -seconds 8 > /tmp/guard-gateway.log 2>&1 &
 GUARD_GATEWAY=$!
 $BB sleep 1
 $IP link set guard0 up
-/usr/bin/wirelab listen -mode guard -addr 10.0.0.1:55002 -seconds 7 > /tmp/guard-receiver.log 2>&1 &
+$LAB listen -mode guard -addr 10.0.0.1:55002 -seconds 7 > /tmp/guard-receiver.log 2>&1 &
 GUARD_RECEIVER=$!
 $BB sleep 1
-$NS -t "$P1" -n /usr/bin/wirelab guard-send -peer 1 -key-file /tmp/guard1.key -counter 1 -src 10.0.1.2 -payload G1_ALLOWED
-$NS -t "$P2" -n /usr/bin/wirelab guard-send -peer 2 -key-file /tmp/guard2.key -counter 1 -src 10.0.2.2 -payload G2_ALLOWED
-$NS -t "$P1" -n /usr/bin/wirelab guard-send -peer 1 -key-file /tmp/guard1.key -counter 2 -src 10.0.2.2 -payload G1_SPOOF
-$NS -t "$P1" -n /usr/bin/wirelab guard-send -peer 1 -key-file /tmp/guard1.key -counter 1 -src 10.0.1.2 -payload G1_ALLOWED
-$NS -t "$P1" -n /usr/bin/wirelab guard-send -peer 1 -key-file /tmp/guard1.key -counter 2 -src 10.0.1.2 -payload G1_AFTER
-$NS -t "$P2" -n /usr/bin/wirelab guard-send -peer 2 -key-file /tmp/guard2.key -counter 2 -src 10.0.2.2 -payload G2_AFTER
+$NS -t "$P1" -n $LAB guard-send -peer 1 -key-file /tmp/guard1.key -counter 1 -src 10.0.1.2 -payload G1_ALLOWED
+$NS -t "$P2" -n $LAB guard-send -peer 2 -key-file /tmp/guard2.key -counter 1 -src 10.0.2.2 -payload G2_ALLOWED
+$NS -t "$P1" -n $LAB guard-send -peer 1 -key-file /tmp/guard1.key -counter 2 -src 10.0.2.2 -payload G1_SPOOF
+$NS -t "$P1" -n $LAB guard-send -peer 1 -key-file /tmp/guard1.key -counter 1 -src 10.0.1.2 -payload G1_ALLOWED
+$NS -t "$P1" -n $LAB guard-send -peer 1 -key-file /tmp/guard1.key -counter 2 -src 10.0.1.2 -payload G1_AFTER
+$NS -t "$P2" -n $LAB guard-send -peer 2 -key-file /tmp/guard2.key -counter 2 -src 10.0.2.2 -payload G2_AFTER
 if wait "$GUARD_RECEIVER"; then echo 'GUARD_RECEIVER_EXIT=PASS'; else echo 'GUARD_RECEIVER_EXIT=FAIL'; fi
 if wait "$GUARD_GATEWAY"; then echo 'GUARD_GATEWAY_EXIT=PASS'; else echo 'GUARD_GATEWAY_EXIT=FAIL'; fi
 $BB cat /tmp/guard-receiver.log

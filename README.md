@@ -10,6 +10,7 @@ The gateway does not implement WireGuard, modify `wireguard-go`, or fix a WireGu
 - `cmd/wirelab`: isolated packet sender, TUN gateways, receiver, and Linux encrypted-frame replay helper. The weak gateway deliberately omits the source binding for the negative control.
 - `scripts/experiment_guest.sh`: two network namespaces, two actual WireGuard peers, weak control, and six-packet guarded control in one disposable Linux VM.
 - `scripts/prepare_macos_vm.py` and `scripts/run_macos_vm.py`: pinned Alpine inputs, Build-only binaries/serial log, and fail-closed required markers on macOS arm64.
+- `.github/workflows/verify.yml` and `scripts/hosted_linux_ci.py`: pull-request build checks and a trusted-push Ubuntu real-kernel run with a no-secret, fail-closed machine receipt. See `HOSTED_CI.md` for the runner and ref trust boundary.
 
 The received-packet matrix is: both peers' allowed packets deliver once; after the negative cases, both peers' fresh packets still deliver once. Peer 1's claim to peer 2's `10.0.2.2` is absent. An identical encrypted WireGuard frame is reinjected from peer 1's veth; its first payload is delivered once, not twice. In the weak control, a peer 1 underlay packet claiming the peer 2 inner source is actually delivered. The separate guarded TUN control shows an authenticated prefix rejection and a counter replay rejection before TUN injection.
 
@@ -18,7 +19,7 @@ The received-packet matrix is: both peers' allowed packets deliver once; after t
 From this source tree, direct every generated file to a path under the workspace `Build` directory:
 
 ```sh
-export LAB_BUILD=/absolute/workspace/Build/验证/WireGuardPeerPrefixBinding-20261006/environment
+export LAB_BUILD=/absolute/workspace/Build/验证/WireGuardPeerPrefixBinding-20261006/new-local-vm-run
 mkdir -p "$LAB_BUILD/go-cache" "$LAB_BUILD/go-tmp"
 GOCACHE="$LAB_BUILD/go-cache" GOTMPDIR="$LAB_BUILD/go-tmp" go test ./...
 python3 scripts/prepare_macos_vm.py "$LAB_BUILD"

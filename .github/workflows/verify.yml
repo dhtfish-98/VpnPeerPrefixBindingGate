@@ -1,0 +1,69 @@
+# Copyright (c) 2026 dhtfish98. MIT License.
+name: Verify source and Linux kernel experiment
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GOCACHE: ${{ github.workspace }}/Build/ci/go-cache
+      GOTMPDIR: ${{ github.workspace }}/Build/ci/go-tmp
+      GOMODCACHE: ${{ github.workspace }}/Build/ci/go-mod-cache
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Test, vet, and build both Linux architectures
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p Build/ci/go-cache Build/ci/go-tmp Build/ci/go-mod-cache Build/ci/bin
+          go test -race ./...
+          go vet ./...
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o Build/ci/bin/wirelab-amd64 ./cmd/wirelab
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -buildvcs=false -o Build/ci/bin/wirelab-arm64 ./cmd/wirelab
+
+  real-kernel:
+    if: github.event_name == 'push'
+    needs: build-and-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Initialize fail-closed machine receipt
+        shell: bash
+        run: |
+          mkdir -p Build/ci
+          python3 -B scripts/hosted_linux_ci.py verify --log /dev/null --exit-code 98 --receipt Build/ci/machine-receipt.json || true
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Run isolated real-kernel matrix
+        shell: bash
+        run: python3 -B scripts/hosted_linux_ci.py run Build/ci
+      - name: Retain no-secret machine receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: kernel-receipt-${{ github.sha }}-${{ github.run_attempt }}
+          path: Build/ci/machine-receipt.json
+          if-no-files-found: error
+          retention-days: 7

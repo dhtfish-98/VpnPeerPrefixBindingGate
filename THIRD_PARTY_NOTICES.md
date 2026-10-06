@@ -10,4 +10,8 @@ The versioned source candidate contains no vendored third-party code, Linux modu
 | `libcap2`, `libelf`, `libmnl`, `zlib`, `zstd-libs` | [Alpine main aarch64 package index](https://dl-cdn.alpinelinux.org/alpine/v3.23/main/aarch64/). Runtime dependencies carry their own package notices; see their package metadata and the exact downloaded APKs under `Build`. |
 | Apple Virtualization framework | Operating-system framework used by the host VM runner; no framework code is bundled. |
 
+The optional hosted Linux job obtains Ubuntu `busybox`, `wireguard-tools`, `iproute2`, `kmod`, and `util-linux` through the runner's distribution package repository at run time. These tools and the runner's Linux kernel retain their own package and upstream rights; they are not included in this source candidate or relicensed by its MIT license. Runner image and package contents can change, so the public job and its receipt—not the local Alpine pin set—must be checked for the exact hosted run.
+
+The workflow calls pinned `actions/checkout`, `actions/setup-go`, and `actions/upload-artifact` revisions as external GitHub Actions. Their implementations and rights remain with their owners; no action source is vendored into this candidate.
+
 The research reference [WireGuard/wireguard-go at the fixed commit](https://github.com/WireGuard/wireguard-go/commit/ecfc5a8d54462e18e13c72173e2623d16d8e25a0) has its own [MIT license](https://github.com/WireGuard/wireguard-go/blob/ecfc5a8d54462e18e13c72173e2623d16d8e25a0/LICENSE). It was read as a reference; its source and binaries are not in the candidate. The VM uses the Linux kernel WireGuard implementation, not `wireguard-go` at that commit.
