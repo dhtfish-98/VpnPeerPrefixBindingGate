@@ -86,11 +86,15 @@ def package_versions() -> dict[str, str]:
 
 
 def metadata() -> dict:
-    sha = os.environ.get("GITHUB_SHA", "")
+    event_sha = os.environ.get("GITHUB_SHA", "")
+    checkout = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                              capture_output=True, text=True, check=False)
+    commit = checkout.stdout.strip()
     image = os.environ.get("ImageOS", "")
     version = os.environ.get("ImageVersion", "")
     return {
-        "commit": sha if re.fullmatch(r"[0-9a-fA-F]{40}", sha) else "local",
+        "checkout_commit": commit if checkout.returncode == 0 and re.fullmatch(r"[0-9a-fA-F]{40}", commit) else "unavailable",
+        "event_sha": event_sha if re.fullmatch(r"[0-9a-fA-F]{40}", event_sha) else "",
         "run_id": safe_number("GITHUB_RUN_ID"),
         "run_attempt": safe_number("GITHUB_RUN_ATTEMPT"),
         "image": image if re.fullmatch(r"[A-Za-z0-9_.-]{1,40}", image) else "",
@@ -249,9 +253,16 @@ def main() -> int:
     check_cmd.add_argument("--log", type=Path, required=True)
     check_cmd.add_argument("--exit-code", type=int, required=True)
     check_cmd.add_argument("--receipt", type=Path, required=True)
+    init_cmd = sub.add_parser("init")
+    init_cmd.add_argument("--receipt", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "run":
         return hosted_run(args.build_dir.resolve())
+    if args.command == "init":
+        receipt = verify(b"", 98, "workflow_initialization", "hosted_execution_pending")
+        write_receipt(args.receipt, receipt)
+        print("HOSTED_RESULT=INFRA_ERROR stage=workflow_initialization")
+        return 0
     receipt = verify(args.log.read_bytes(), args.exit_code)
     write_receipt(args.receipt, receipt)
     print(f"LOG_CHECK_RESULT={receipt['status']}")

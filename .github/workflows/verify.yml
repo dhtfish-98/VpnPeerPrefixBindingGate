@@ -51,7 +51,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p Build/ci
-          python3 -B scripts/hosted_linux_ci.py verify --log /dev/null --exit-code 98 --receipt Build/ci/machine-receipt.json || true
+          python3 -B scripts/hosted_linux_ci.py init --receipt Build/ci/machine-receipt.json
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version-file: go.mod
