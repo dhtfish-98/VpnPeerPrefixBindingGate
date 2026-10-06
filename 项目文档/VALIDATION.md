@@ -1,6 +1,6 @@
 # v0.1.0 local validation receipt (2026-10-06)
 
-The original research evidence is retained under `Build/验证/WireGuardPeerPrefixBinding-20261006/environment/`. This source revision was rerun under `Build/验证/WireGuardPeerPrefixBinding-20261006/hosted-ci-local-check/` after adapting the guest script to configurable Ubuntu tool paths. Both paths retain the fixed-topic name for traceability. The current receipt below is tied to the revised guest script and its rebuilt VM, not to an earlier capability probe.
+The original research evidence is retained under `Build/验证/WireGuardPeerPrefixBinding-20261006/environment/`. The table and hashes below are a **historical pre-hosted-fix freeze** under `Build/验证/WireGuardPeerPrefixBinding-20261006/hosted-ci-local-check/`, after adapting the guest script to configurable Ubuntu tool paths. Both paths retain the fixed-topic name for traceability. A subsequent public hosted failure required a narrowly revised synthetic TUN fixture; its current local comparison and still-open hosted result are in [HOSTED_FAILURE_37407758390.md](HOSTED_FAILURE_37407758390.md). Do not use the historical hashes below as hashes of the current source revision.
 
 | Check | Observed result |
 | --- | --- |
@@ -24,4 +24,6 @@ The revised local VM runner printed `VM_RESULT=PASS` after checking all required
 | rebuilt `vm/initramfs-experiment.gz` | `a21193a2d988eacb0beff2461ea9b2f758a6091de7eca3a7a5d03b891d57978a` |
 | rebuilt `vm/overlay/usr/bin/wirelab` | `14f171d1eb9e4754cad625039d40934bd0b86db0d95d3a1b4ee211b4be4afb96` |
 
-This proves only the isolated Linux kernel and synthetic-gateway behavior in this run. It does not prove a flaw or patch in `wireguard-go`, production tunnel safety, hosted CI, a published release, or CVP eligibility. The package and Git freeze are recorded separately in the Build receipt so these VM bytes remain tied to the exact candidate files.
+This proves only the isolated Linux kernel and synthetic-gateway behavior in this historical run. It does not prove a flaw or patch in `wireguard-go`, production tunnel safety, hosted CI, a published release, or CVP eligibility. The package and Git freeze are recorded separately in the Build receipt so these VM bytes remain tied to the exact candidate files.
+
+The later reverse-path-filter fixture change was checked with shell/Python syntax, `go test -race ./...`, `go vet ./...`, an offline receipt positive/negative fixture, and a freshly rebuilt pinned Alpine VM. The new VM produced `VM_RESULT=PASS` with nine exact delivery lines and six exact guard decisions. The strict-filter control reproduced the missing synthetic deliveries. Those local checks support the change; a successful hosted Ubuntu run is still required for release acceptance.

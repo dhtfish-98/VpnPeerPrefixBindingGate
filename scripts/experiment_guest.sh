@@ -100,9 +100,21 @@ if wait "$RECEIVER"; then echo 'RECEIVER_EXIT=PASS'; else echo 'RECEIVER_EXIT=FA
 $BB cat /tmp/receiver.log
 $BB cat /tmp/replay.log
 
+# The synthetic TUN receivers intentionally accept a claimed source whose
+# return route is wg0. A host image's strict reverse-path policy would drop
+# that packet before the UDP listener could observe the gateway decision.
+# These sysctls are scoped to this disposable network namespace only.
+printf '0\n' > /proc/sys/net/ipv4/conf/all/rp_filter
+printf '0\n' > /proc/sys/net/ipv4/conf/default/rp_filter
+test "$($BB cat /proc/sys/net/ipv4/conf/all/rp_filter)" = 0
+test "$($BB cat /proc/sys/net/ipv4/conf/default/rp_filter)" = 0
+
 $LAB weak-gateway -seconds 5 > /tmp/weak-gateway.log 2>&1 &
 WEAK_GATEWAY=$!
 $BB sleep 1
+printf '0\n' > /proc/sys/net/ipv4/conf/weak0/rp_filter
+test "$($BB cat /proc/sys/net/ipv4/conf/weak0/rp_filter)" = 0
+echo 'WEAK_TUN_RPF_DISABLED=PASS'
 $IP link set weak0 up
 $LAB listen -mode weak -addr 10.0.0.1:55001 -seconds 4 > /tmp/weak-receiver.log 2>&1 &
 WEAK_RECEIVER=$!
@@ -118,6 +130,9 @@ $LAB genkey -out /tmp/guard2.key
 $LAB guard-gateway -key1 /tmp/guard1.key -key2 /tmp/guard2.key -seconds 8 > /tmp/guard-gateway.log 2>&1 &
 GUARD_GATEWAY=$!
 $BB sleep 1
+printf '0\n' > /proc/sys/net/ipv4/conf/guard0/rp_filter
+test "$($BB cat /proc/sys/net/ipv4/conf/guard0/rp_filter)" = 0
+echo 'GUARD_TUN_RPF_DISABLED=PASS'
 $IP link set guard0 up
 $LAB listen -mode guard -addr 10.0.0.1:55002 -seconds 7 > /tmp/guard-receiver.log 2>&1 &
 GUARD_RECEIVER=$!

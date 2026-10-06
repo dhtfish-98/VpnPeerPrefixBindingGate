@@ -26,4 +26,4 @@ python3 scripts/prepare_macos_vm.py "$LAB_BUILD"
 python3 scripts/run_macos_vm.py "$LAB_BUILD"
 ```
 
-The VM route needs macOS arm64 with Apple Virtualization, `swiftc`, `codesign`, `go`, `7z`, `tar`, and `cpio`. The preparation script downloads pinned Alpine aarch64 kernel/initramfs/modules and runtime packages into `Build` and verifies SHA-256 before use. It refuses a changed upstream asset. The VM has no network adapter; all peer traffic stays inside its kernel namespaces. See `VALIDATION.md` for the exact frozen receipt and `THIRD_PARTY_NOTICES.md` for rights.
+The VM route needs macOS arm64 with Apple Virtualization, `swiftc`, `codesign`, `go`, `7z`, `tar`, and `cpio`. The preparation script downloads pinned Alpine aarch64 kernel/initramfs/modules and runtime packages into `Build` and verifies SHA-256 before use. It refuses a changed upstream asset. The VM has no network adapter; all peer traffic stays inside its kernel namespaces. See `VALIDATION.md` for the dated local receipt, `HOSTED_FAILURE_37407758390.md` for the first public hosted failure and its still-open rerun, and `THIRD_PARTY_NOTICES.md` for rights.
